@@ -1,0 +1,6 @@
+@archi_studio_server = http://localhost:5181
+
+GET {{archi_studio_server}}/api/health
+Accept: application/json
+
+###

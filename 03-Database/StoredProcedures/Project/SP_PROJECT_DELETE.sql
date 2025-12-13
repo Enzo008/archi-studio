@@ -1,0 +1,80 @@
+-- *****************************************************************************************************
+-- Description       : Delete (soft delete) a project
+-- Created by        : Enzo Gago Aguirre
+-- Creation Date     : 09/12/2025
+-- Purpose           : Marks project as eliminated (STAREC = 'D')
+-- *****************************************************************************************************
+
+CREATE OR ALTER PROCEDURE SP_PROJECT_DELETE
+    @P_PROYEA CHAR(04),
+    @P_PROCOD CHAR(06),
+    -- Log parameters
+    @P_USECRE VARCHAR(30),
+    @P_ZONCRE VARCHAR(50),
+    -- Output parameters
+    @P_TOTAL_RECORDS INT OUTPUT,
+    @P_MESSAGE_DESCRIPTION VARCHAR(500) OUTPUT,
+    @P_MESSAGE_TYPE INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Check if project exists
+        IF NOT EXISTS (SELECT 1 FROM TM_PROJECT WHERE PROYEA = @P_PROYEA AND PROCOD = @P_PROCOD AND STAREC <> 'D')
+        BEGIN
+            SET @P_MESSAGE_TYPE = 2; -- Warning
+            SET @P_MESSAGE_DESCRIPTION = 'Proyecto no encontrado';
+            SET @P_TOTAL_RECORDS = 0;
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+        
+        -- Check if project has active budgets
+        IF EXISTS (SELECT 1 FROM TM_BUDGET WHERE PROYEA = @P_PROYEA AND PROCOD = @P_PROCOD AND STAREC <> 'D')
+        BEGIN
+            SET @P_MESSAGE_TYPE = 2; -- Warning
+            SET @P_MESSAGE_DESCRIPTION = 'No se puede eliminar el proyecto porque tiene presupuestos asociados';
+            SET @P_TOTAL_RECORDS = 0;
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+        
+        -- Check if project has active documents
+        IF EXISTS (SELECT 1 FROM TM_DOCUMENT WHERE PROYEA = @P_PROYEA AND PROCOD = @P_PROCOD AND STAREC <> 'D')
+        BEGIN
+            SET @P_MESSAGE_TYPE = 2; -- Warning
+            SET @P_MESSAGE_DESCRIPTION = 'No se puede eliminar el proyecto porque tiene documentos asociados';
+            SET @P_TOTAL_RECORDS = 0;
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+        
+        -- Soft delete project
+        UPDATE TM_PROJECT
+        SET 
+            USEUPD = @P_USECRE,
+            DATUPD = GETDATE(),
+            ZONUPD = @P_ZONCRE,
+            STAREC = 'D'
+        WHERE PROYEA = @P_PROYEA AND PROCOD = @P_PROCOD;
+        
+        COMMIT TRANSACTION;
+        
+        SET @P_MESSAGE_TYPE = 3; -- Success
+        SET @P_MESSAGE_DESCRIPTION = 'Proyecto eliminado correctamente';
+        SET @P_TOTAL_RECORDS = 1;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        SET @P_MESSAGE_TYPE = 1; -- Error
+        SET @P_MESSAGE_DESCRIPTION = ERROR_MESSAGE();
+        SET @P_TOTAL_RECORDS = 0;
+    END CATCH
+END
+GO

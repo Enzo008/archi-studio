@@ -1,0 +1,77 @@
+# ================================
+# ArchiStudio .gitignore
+# ================================
+
+# ----------------
+# Frontend (Next.js)
+# ----------------
+01-Frontend/node_modules/
+01-Frontend/.next/
+01-Frontend/out/
+01-Frontend/.env
+01-Frontend/.env.local
+01-Frontend/.env.production
+01-Frontend/.env*.local
+01-Frontend/.vercel
+01-Frontend/.turbo
+
+# ----------------
+# Backend (.NET)
+# ----------------
+02-Backend/bin/
+02-Backend/obj/
+02-Backend/.vs/
+02-Backend/*.user
+02-Backend/*.suo
+02-Backend/uploads/
+
+# ----------------
+# Database
+# ----------------
+# No ignorar nada - scripts deben versionarse
+
+# ----------------
+# Helper
+# ----------------
+04-Helper/bin/
+04-Helper/obj/
+
+# ----------------
+# IDE / Editor
+# ----------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ----------------
+# Logs
+# ----------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----------------
+# Temporary files
+# ----------------
+*.tmp
+*.temp
+.cache/
+
+# ----------------
+# Secrets (NEVER commit)
+# ----------------
+*.pem
+*.key
+secrets/
+.env.production
+appsettings.Production.json
+
+# Keep example files
+!appsettings.example.json
+!.env.example
