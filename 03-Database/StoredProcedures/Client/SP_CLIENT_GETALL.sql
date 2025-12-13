@@ -31,12 +31,20 @@ BEGIN
         -- Calculate offset
         DECLARE @Offset INT = (@P_PAGE_NUMBER - 1) * @P_PAGE_SIZE;
         
-        -- Get total count with filters (including user filter for multitenancy)
+        -- Get user role for admin bypass
+        DECLARE @UserRolCod CHAR(02) = NULL;
+        IF @P_USEYEA IS NOT NULL AND @P_USECOD IS NOT NULL
+        BEGIN
+            SELECT @UserRolCod = ROLCOD FROM TM_USER 
+            WHERE USEYEA = @P_USEYEA AND USECOD = @P_USECOD AND STAREC <> 'D';
+        END
+        
+        -- Get total count with filters (admin bypass when RolCod='01')
         SELECT @P_TOTAL_RECORDS = COUNT(*)
         FROM TM_CLIENT
         WHERE STAREC <> 'D'
-          AND (@P_USEYEA IS NULL OR USEYEA = @P_USEYEA)
-          AND (@P_USECOD IS NULL OR USECOD = @P_USECOD)
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR USEYEA = @P_USEYEA)
+          AND (@UserRolCod = '01' OR @P_USECOD IS NULL OR USECOD = @P_USECOD)
           AND (@P_SEARCH IS NULL OR CLINAM LIKE '%' + @P_SEARCH + '%' OR CLIEMA LIKE '%' + @P_SEARCH + '%')
           AND (@P_CLITYP IS NULL OR CLITYP = @P_CLITYP)
           AND (@P_CLISTA IS NULL OR CLISTA = @P_CLISTA);
@@ -64,8 +72,8 @@ BEGIN
             @P_TOTAL_RECORDS AS TOTALCOUNT
         FROM TM_CLIENT
         WHERE STAREC <> 'D'
-          AND (@P_USEYEA IS NULL OR USEYEA = @P_USEYEA)
-          AND (@P_USECOD IS NULL OR USECOD = @P_USECOD)
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR USEYEA = @P_USEYEA)
+          AND (@UserRolCod = '01' OR @P_USECOD IS NULL OR USECOD = @P_USECOD)
           AND (@P_SEARCH IS NULL OR CLINAM LIKE '%' + @P_SEARCH + '%' OR CLIEMA LIKE '%' + @P_SEARCH + '%')
           AND (@P_CLITYP IS NULL OR CLITYP = @P_CLITYP)
           AND (@P_CLISTA IS NULL OR CLISTA = @P_CLISTA)

@@ -14,6 +14,7 @@ CREATE OR ALTER PROCEDURE SP_PROJECT_GETALL
     @P_PROSTA CHAR(02) = NULL,
     @P_CLIYEA CHAR(04) = NULL,
     @P_CLICOD CHAR(06) = NULL,
+    -- User filter (multitenancy)
     @P_USEYEA CHAR(04) = NULL,
     @P_USECOD CHAR(06) = NULL,
     -- Log parameters
@@ -31,14 +32,22 @@ BEGIN
         -- Calculate offset
         DECLARE @Offset INT = (@P_PAGE_NUMBER - 1) * @P_PAGE_SIZE;
         
-        -- Get total count with filters
+        -- Get user role for admin bypass
+        DECLARE @UserRolCod CHAR(02) = NULL;
+        IF @P_USEYEA IS NOT NULL AND @P_USECOD IS NOT NULL
+        BEGIN
+            SELECT @UserRolCod = ROLCOD FROM TM_USER 
+            WHERE USEYEA = @P_USEYEA AND USECOD = @P_USECOD AND STAREC <> 'D';
+        END
+        
+        -- Get total count with filters (admin bypass when RolCod='01')
         SELECT @P_TOTAL_RECORDS = COUNT(*)
         FROM TM_PROJECT P
         WHERE P.STAREC <> 'D'
           AND (@P_SEARCH IS NULL OR P.PRONAM LIKE '%' + @P_SEARCH + '%' OR P.PRODES LIKE '%' + @P_SEARCH + '%')
           AND (@P_PROSTA IS NULL OR P.PROSTA = @P_PROSTA)
           AND (@P_CLIYEA IS NULL OR (P.CLIYEA = @P_CLIYEA AND P.CLICOD = @P_CLICOD))
-          AND (@P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD));
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD));
         
         -- Return paginated data
         SELECT 
@@ -78,7 +87,7 @@ BEGIN
           AND (@P_SEARCH IS NULL OR P.PRONAM LIKE '%' + @P_SEARCH + '%' OR P.PRODES LIKE '%' + @P_SEARCH + '%')
           AND (@P_PROSTA IS NULL OR P.PROSTA = @P_PROSTA)
           AND (@P_CLIYEA IS NULL OR (P.CLIYEA = @P_CLIYEA AND P.CLICOD = @P_CLICOD))
-          AND (@P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD))
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD))
         ORDER BY P.DATCRE DESC
         OFFSET @Offset ROWS
         FETCH NEXT @P_PAGE_SIZE ROWS ONLY;

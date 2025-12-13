@@ -32,7 +32,15 @@ BEGIN
         -- Calculate offset
         DECLARE @Offset INT = (@P_PAGE_NUMBER - 1) * @P_PAGE_SIZE;
         
-        -- Get total count with filters (including user filter via project)
+        -- Get user role for admin bypass
+        DECLARE @UserRolCod CHAR(02) = NULL;
+        IF @P_USEYEA IS NOT NULL AND @P_USECOD IS NOT NULL
+        BEGIN
+            SELECT @UserRolCod = ROLCOD FROM TM_USER 
+            WHERE USEYEA = @P_USEYEA AND USECOD = @P_USECOD AND STAREC <> 'D';
+        END
+        
+        -- Get total count with filters (admin bypass when RolCod='01')
         SELECT @P_TOTAL_RECORDS = COUNT(*)
         FROM TM_BUDGET B
         INNER JOIN TM_PROJECT P ON B.PROYEA = P.PROYEA AND B.PROCOD = P.PROCOD
@@ -40,7 +48,7 @@ BEGIN
           AND (@P_SEARCH IS NULL OR B.BUDNAM LIKE '%' + @P_SEARCH + '%')
           AND (@P_BUDSTA IS NULL OR B.BUDSTA = @P_BUDSTA)
           AND (@P_PROYEA IS NULL OR (B.PROYEA = @P_PROYEA AND B.PROCOD = @P_PROCOD))
-          AND (@P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD));
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD));
         
         -- Return paginated data
         SELECT 
@@ -74,7 +82,7 @@ BEGIN
           AND (@P_SEARCH IS NULL OR B.BUDNAM LIKE '%' + @P_SEARCH + '%')
           AND (@P_BUDSTA IS NULL OR B.BUDSTA = @P_BUDSTA)
           AND (@P_PROYEA IS NULL OR (B.PROYEA = @P_PROYEA AND B.PROCOD = @P_PROCOD))
-          AND (@P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD))
+          AND (@UserRolCod = '01' OR @P_USEYEA IS NULL OR (P.USEYEA = @P_USEYEA AND P.USECOD = @P_USECOD))
         ORDER BY B.DATCRE DESC
         OFFSET @Offset ROWS
         FETCH NEXT @P_PAGE_SIZE ROWS ONLY;
