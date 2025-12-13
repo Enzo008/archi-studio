@@ -22,7 +22,6 @@ CREATE OR ALTER PROCEDURE SP_CLIENT_CREATE
     -- Output parameters
     @P_CLIYEA_OUT CHAR(04) OUTPUT,
     @P_CLICOD_OUT CHAR(06) OUTPUT,
-    @P_STAREC CHAR(01) OUTPUT,
     @P_MESSAGE_DESCRIPTION VARCHAR(500) OUTPUT,
     @P_MESSAGE_TYPE INT OUTPUT
 AS
@@ -43,7 +42,6 @@ BEGIN
         BEGIN
             SET @P_MESSAGE_TYPE = 2; -- Warning
             SET @P_MESSAGE_DESCRIPTION = 'El email ya está registrado para este usuario';
-            SET @P_STAREC = 'C';
             ROLLBACK TRANSACTION;
             RETURN;
         END
@@ -72,7 +70,6 @@ BEGIN
         
         SET @P_MESSAGE_TYPE = 3; -- Success
         SET @P_MESSAGE_DESCRIPTION = 'Cliente creado correctamente';
-        SET @P_STAREC = 'C';
         
     END TRY
     BEGIN CATCH
@@ -81,7 +78,6 @@ BEGIN
             
         SET @P_MESSAGE_TYPE = 1; -- Error
         SET @P_MESSAGE_DESCRIPTION = ERROR_MESSAGE();
-        SET @P_STAREC = 'C';
     END CATCH
 END
 GO
