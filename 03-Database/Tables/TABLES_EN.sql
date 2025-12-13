@@ -531,17 +531,17 @@ GO
 -- =============================================
 
 -- Items for Budget 2025-000001 (Residencia García)
-INSERT INTO TD_BUDGET_ITEM (BUDYEA, BUDCOD, BUDITENUM, BUDITENAM, BUDITEQTY, BUDITEUNI, BUDITEPRI, BUDITETOT, BUDITESTA, BUDITENOT, BUDITEIMG, USECRE, DATCRE, ZONCRE, STAREC) VALUES
-('2025', '000001', 1, 'Cimentación y zapatas', 1, 'GLB', 45000.00, 45000.00, '01', 'Incluye excavación, fierro y concreto f''c=210', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 2, 'Estructura de concreto armado', 1, 'GLB', 85000.00, 85000.00, '01', 'Columnas, vigas y losas', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 3, 'Muros de albañilería', 250, 'm2', 120.00, 30000.00, '01', 'Ladrillo King Kong 18 huecos', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 4, 'Instalaciones eléctricas', 1, 'GLB', 35000.00, 35000.00, '01', 'Incluye tableros, cableado y luminarias', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 5, 'Instalaciones sanitarias', 1, 'GLB', 28000.00, 28000.00, '01', 'Red de agua fría, caliente y desagüe', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 6, 'Acabados interiores', 1, 'GLB', 120000.00, 120000.00, '01', 'Pisos, pintura, carpintería', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 7, 'Ventanas y mamparas', 45, 'm2', 850.00, 38250.00, '01', 'Vidrio templado con marco de aluminio', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 8, 'Puertas interiores', 12, 'und', 1200.00, 14400.00, '01', 'Contraplacadas con marco de madera', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 9, 'Puerta principal', 1, 'und', 4500.00, 4500.00, '01', 'Madera cedro con acabado barnizado', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
-('2025', '000001', 10, 'Aparatos sanitarios', 1, 'GLB', 18000.00, 18000.00, '01', 'Inodoros, lavatorios, griferías', NULL, 'SYSTEM', GETDATE(), 'America/Lima', 'C');
+INSERT INTO TD_BUDGET_ITEM (BUDYEA, BUDCOD, BUDITENUM, BUDITENAM, BUDITEQTY, BUDITEUNI, BUDITEPRI, BUDITETOT, BUDITESTA, BUDITENOT, USECRE, DATCRE, ZONCRE, STAREC) VALUES
+('2025', '000001', 1, 'Cimentación y zapatas', 1, 'GLB', 45000.00, 45000.00, '01', 'Incluye excavación, fierro y concreto f''c=210', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 2, 'Estructura de concreto armado', 1, 'GLB', 85000.00, 85000.00, '01', 'Columnas, vigas y losas', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 3, 'Muros de albañilería', 250, 'm2', 120.00, 30000.00, '01', 'Ladrillo King Kong 18 huecos', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 4, 'Instalaciones eléctricas', 1, 'GLB', 35000.00, 35000.00, '01', 'Incluye tableros, cableado y luminarias', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 5, 'Instalaciones sanitarias', 1, 'GLB', 28000.00, 28000.00, '01', 'Red de agua fría, caliente y desagüe', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 6, 'Acabados interiores', 1, 'GLB', 120000.00, 120000.00, '01', 'Pisos, pintura, carpintería', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 7, 'Ventanas y mamparas', 45, 'm2', 850.00, 38250.00, '01', 'Vidrio templado con marco de aluminio', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 8, 'Puertas interiores', 12, 'und', 1200.00, 14400.00, '01', 'Contraplacadas con marco de madera', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 9, 'Puerta principal', 1, 'und', 4500.00, 4500.00, '01', 'Madera cedro con acabado barnizado', 'SYSTEM', GETDATE(), 'America/Lima', 'C'),
+('2025', '000001', 10, 'Aparatos sanitarios', 1, 'GLB', 18000.00, 18000.00, '01', 'Inodoros, lavatorios, griferías', 'SYSTEM', GETDATE(), 'America/Lima', 'C');
 
 -- Items for Budget 2025-000002 (Edificio Los Andes - Fase 1)
 INSERT INTO TD_BUDGET_ITEM (BUDYEA, BUDCOD, BUDITENUM, BUDITENAM, BUDITEQTY, BUDITEUNI, BUDITEPRI, BUDITETOT, BUDITESTA, BUDITENOT, BUDITEIMG, USECRE, DATCRE, ZONCRE, STAREC) VALUES

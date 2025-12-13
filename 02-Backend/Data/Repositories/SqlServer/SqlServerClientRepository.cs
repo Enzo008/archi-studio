@@ -106,6 +106,9 @@ namespace archi_studio.server.Data.Repositories.SqlServer
                 AddParameter(parameters, "@P_CLIADD", bClient.CliAdd);
                 AddParameter(parameters, "@P_CLISTA", bClient.CliSta ?? 'A');
                 AddParameter(parameters, "@P_CLIDES", bClient.CliDes);
+                // Multi-tenancy: assign owner user
+                AddParameter(parameters, "@P_USEYEA", bLog.UseYea);
+                AddParameter(parameters, "@P_USECOD", bLog.UseCod);
                 AddOutputParameter(parameters, "@P_CLIYEA_OUT", SqlDbType.Char, 4);
                 AddOutputParameter(parameters, "@P_CLICOD_OUT", SqlDbType.Char, 6);
 

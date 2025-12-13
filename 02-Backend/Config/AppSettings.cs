@@ -44,7 +44,7 @@ namespace archi_studio.server.Config
                 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
                 return env == "Development" 
                     ? "http://localhost:5181" 
-                    : "https://archi-studio.com";
+                    : "https://archi-studio-eight.vercel.app";
             }
         }
     }
