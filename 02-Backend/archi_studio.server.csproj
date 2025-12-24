@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <Reference Include="Helper">
-      <HintPath>$(ProjectDir)bin\Debug\net10.0\Helper.dll</HintPath>
+      <HintPath>libs\Helper.dll</HintPath>
     </Reference>
   </ItemGroup>
 
