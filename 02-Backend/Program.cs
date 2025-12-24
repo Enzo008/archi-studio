@@ -13,6 +13,7 @@ using archi_studio.server.Config;
 using archi_studio.server.Data.Helper;
 using archi_studio.server.Data.Factory;
 using archi_studio.server.Data.Interfaces;
+using archi_studio.server.Middleware;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.IIS;
 
@@ -232,6 +233,9 @@ namespace archi_studio.server
             // app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
+            
+            // Cache user context after authentication (before controllers)
+            app.UseUserContext();
 
             // Configurar rutas API
             app.MapControllers();

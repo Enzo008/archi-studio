@@ -12,6 +12,7 @@ using System.Data;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -27,61 +28,36 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(Client bClient, Log bLog)
+        public async Task<OperationResponse> Search(Client bClient, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
-                AddParameter(parameters, "@P_PAGE_NUMBER", bClient.PageNumber ?? 1);
-                AddParameter(parameters, "@P_PAGE_SIZE", bClient.PageSize ?? 10);
-                // Multi-tenancy filter
-                AddParameter(parameters, "@P_USEYEA", bClient.UseYea);
-                AddParameter(parameters, "@P_USECOD", bClient.UseCod);
+                AddParameter(parameters, "@P_CLIYEA", bClient.CliYea);
+                AddParameter(parameters, "@P_CLICOD", bClient.CliCod);
                 AddParameter(parameters, "@P_SEARCH", bClient.CliNam);
                 AddParameter(parameters, "@P_CLITYP", bClient.CliTyp);
                 AddParameter(parameters, "@P_CLISTA", bClient.CliSta);
+                AddParameter(parameters, "@P_USEYEA", bClient.UseYea);
+                AddParameter(parameters, "@P_USECOD", bClient.UseCod);
+                AddParameter(parameters, "@P_PAGE_NUMBER", bClient.PageNumber);
+                AddParameter(parameters, "@P_PAGE_SIZE", bClient.PageSize);
 
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_CLIENT_GETALL", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_CLIENT_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var clients = DeserializeToList<Client>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), clients);
+                    var dtsData = DeserializeDataSet<List<Client>>(dtsDatos) ?? new List<Client>();
+                    
+                    if (!string.IsNullOrEmpty(bClient.CliYea) && !string.IsNullOrEmpty(bClient.CliCod))
+                        return CreateResponseFromParameters(logParameters.ToList(), dtsData.FirstOrDefault());
+                    
+                    return CreateResponseFromParameters(logParameters.ToList(), dtsData);
                 }
-                return CreateErrorResponse("Error al obtener clientes");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
-        }
-
-        public async Task<OperationResponse> GetById(string cliYea, string cliCod, Log bLog)
-        {
-            var dtsDatos = new DataSet();
-            var parameters = CreateParameters();
-
-            try
-            {
-                AddParameter(parameters, "@P_CLIYEA", cliYea);
-                AddParameter(parameters, "@P_CLICOD", cliCod);
-
-                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_CLIENT_GETBYID", CommandType.StoredProcedure,
-                    _connectionString, logParameters, dtsDatos))
-                {
-                    var clients = DeserializeToList<Client>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), clients.FirstOrDefault());
-                }
-                return CreateErrorResponse("Cliente no encontrado");
+                return CreateErrorResponse("Error al buscar clientes");
             }
             catch (Exception ex)
             {
@@ -106,7 +82,6 @@ namespace archi_studio.server.Data.Repositories.SqlServer
                 AddParameter(parameters, "@P_CLIADD", bClient.CliAdd);
                 AddParameter(parameters, "@P_CLISTA", bClient.CliSta ?? 'A');
                 AddParameter(parameters, "@P_CLIDES", bClient.CliDes);
-                // Multi-tenancy: assign owner user
                 AddParameter(parameters, "@P_USEYEA", bLog.UseYea);
                 AddParameter(parameters, "@P_USECOD", bLog.UseCod);
                 AddOutputParameter(parameters, "@P_CLIYEA_OUT", SqlDbType.Char, 4);
@@ -190,36 +165,6 @@ namespace archi_studio.server.Data.Repositories.SqlServer
         {
             var param = parameters.FirstOrDefault(p => p.ParameterName == paramName);
             return param?.Value?.ToString();
-        }
-
-        private List<T> DeserializeToList<T>(DataSet ds) where T : new()
-        {
-            var list = new List<T>();
-            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
-            {
-                foreach (DataRow row in ds.Tables[0].Rows)
-                {
-                    var item = new T();
-                    var props = typeof(T).GetProperties();
-                    foreach (var prop in props)
-                    {
-                        var colName = ds.Tables[0].Columns.Contains(prop.Name) ? prop.Name :
-                                      ds.Tables[0].Columns.Contains(prop.Name.ToUpper()) ? prop.Name.ToUpper() : null;
-                        
-                        if (colName != null && row[colName] != DBNull.Value)
-                        {
-                            try
-                            {
-                                var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                                prop.SetValue(item, Convert.ChangeType(row[colName], targetType));
-                            }
-                            catch { }
-                        }
-                    }
-                    list.Add(item);
-                }
-            }
-            return list;
         }
     }
 }

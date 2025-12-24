@@ -12,6 +12,7 @@ using System.Data;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -27,63 +28,36 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(Document bDocument, Log bLog)
+        public async Task<OperationResponse> Search(Document bDocument, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
-                AddParameter(parameters, "@P_PAGE_NUMBER", bDocument.PageNumber ?? 1);
-                AddParameter(parameters, "@P_PAGE_SIZE", bDocument.PageSize ?? 10);
+                AddParameter(parameters, "@P_DOCYEA", bDocument.DocYea);
+                AddParameter(parameters, "@P_DOCCOD", bDocument.DocCod);
                 AddParameter(parameters, "@P_SEARCH", bDocument.DocNam);
                 AddParameter(parameters, "@P_DOCTYP", bDocument.DocTyp);
                 AddParameter(parameters, "@P_DOCSTA", bDocument.DocSta);
                 AddParameter(parameters, "@P_PROYEA", bDocument.ProYea);
                 AddParameter(parameters, "@P_PROCOD", bDocument.ProCod);
-                // Multi-tenancy filter via project
-                AddParameter(parameters, "@P_USEYEA", bDocument.UseYea);
-                AddParameter(parameters, "@P_USECOD", bDocument.UseCod);
+                AddParameter(parameters, "@P_PAGE_NUMBER", bDocument.PageNumber);
+                AddParameter(parameters, "@P_PAGE_SIZE", bDocument.PageSize);
 
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_DOCUMENT_GETALL", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_DOCUMENT_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var documents = DeserializeToList<Document>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), documents);
+                    var dtsData = DeserializeDataSet<List<Document>>(dtsDatos) ?? new List<Document>();
+                    
+                    if (!string.IsNullOrEmpty(bDocument.DocYea) && !string.IsNullOrEmpty(bDocument.DocCod))
+                        return CreateResponseFromParameters(logParameters.ToList(), dtsData.FirstOrDefault());
+                    
+                    return CreateResponseFromParameters(logParameters.ToList(), dtsData);
                 }
-                return CreateErrorResponse("Error al obtener documentos");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
-        }
-
-        public async Task<OperationResponse> GetById(string docYea, string docCod, Log bLog)
-        {
-            var dtsDatos = new DataSet();
-            var parameters = CreateParameters();
-
-            try
-            {
-                AddParameter(parameters, "@P_DOCYEA", docYea);
-                AddParameter(parameters, "@P_DOCCOD", docCod);
-
-                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_DOCUMENT_GETBYID", CommandType.StoredProcedure,
-                    _connectionString, logParameters, dtsDatos))
-                {
-                    var documents = DeserializeToList<Document>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), documents.FirstOrDefault());
-                }
-                return CreateErrorResponse("Documento no encontrado");
+                return CreateErrorResponse("Error al buscar documentos");
             }
             catch (Exception ex)
             {

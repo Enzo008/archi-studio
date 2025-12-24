@@ -30,7 +30,8 @@ namespace archi_studio.server.Controllers
         }
 
         /// <summary>
-        /// Get all projects with pagination
+        /// Get all projects with pagination and filters
+        /// Internally uses Search method with SP_PROJECT_SEARCH
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse>> GetAll(
@@ -47,10 +48,6 @@ namespace archi_studio.server.Controllers
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
                 
-                // Multi-tenancy: force filter by logged user unless admin (RolCod='01')
-                var filterUseYea = bLog.RolCod == "01" ? useYea : bLog.UseYea;
-                var filterUseCod = bLog.RolCod == "01" ? useCod : bLog.UseCod;
-                
                 var bProject = new Project
                 {
                     PageNumber = page,
@@ -59,10 +56,11 @@ namespace archi_studio.server.Controllers
                     ProSta = status,
                     CliYea = cliYea,
                     CliCod = cliCod,
-                    UseYea = filterUseYea,
-                    UseCod = filterUseCod
+                    UseYea = useYea,
+                    UseCod = useCod
                 };
-                var response = await _projectRepo.GetAll(bProject, bLog);
+                
+                var response = await _projectRepo.Search(bProject, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -73,6 +71,7 @@ namespace archi_studio.server.Controllers
 
         /// <summary>
         /// Get project by ID
+        /// Internally uses Search method with SP_PROJECT_SEARCH
         /// </summary>
         [HttpGet("{proYea}/{proCod}")]
         public async Task<ActionResult<ApiResponse>> GetById(string proYea, string proCod)
@@ -80,7 +79,14 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _projectRepo.GetById(proYea, proCod, bLog);
+                
+                var bProject = new Project
+                {
+                    ProYea = proYea,
+                    ProCod = proCod
+                };
+                
+                var response = await _projectRepo.Search(bProject, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)

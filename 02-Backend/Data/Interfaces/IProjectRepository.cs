@@ -12,8 +12,13 @@ namespace archi_studio.server.Data.Interfaces
 {
     public interface IProjectRepository
     {
-        Task<OperationResponse> GetAll(Project bProject, Log bLog);
-        Task<OperationResponse> GetById(string proYea, string proCod, Log bLog);
+        /// <summary>
+        /// Unified search method that replaces GetAll and GetById
+        /// - Pass ProYea + ProCod for single project lookup (GetById)
+        /// - Pass filters/pagination for list (GetAll)
+        /// </summary>
+        Task<OperationResponse> Search(Project bProject, Log bLog);
+        
         Task<OperationResponse> Create(Project bProject, Log bLog);
         Task<OperationResponse> Update(Project bProject, Log bLog);
         Task<OperationResponse> Delete(string proYea, string proCod, Log bLog);

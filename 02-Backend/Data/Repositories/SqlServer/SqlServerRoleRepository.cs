@@ -2,15 +2,18 @@
 // Descripcion       : Repositorio de roles para SQL Server
 // Creado por        : Enzo Gago Aguirre
 // Fecha de Creacion : 10/02/2025
+// Updated           : 17/12/2025 - Standardized with new SP names
 // Accion a Realizar : CRUD de roles
 // *****************************************************************************************************
 
 using archi_studio.server.Data.Interfaces;
 using archi_studio.server.Models;
+using Microsoft.Data.SqlClient;
 using System.Data;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -26,7 +29,7 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(Log bLog)
+        public async Task<OperationResponse> Search(Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
@@ -35,10 +38,10 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             {
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_ROLE_GETALL", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_ROLE_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var roles = DeserializeToList<Role>(dtsDatos);
+                    var roles = DeserializeDataSet<List<Role>>(dtsDatos) ?? new List<Role>();
                     return CreateResponseFromParameters(logParameters.ToList(), roles);
                 }
                 return CreateErrorResponse("Error al obtener roles");
@@ -53,7 +56,7 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             }
         }
 
-        public async Task<List<Menu>> GetMenusByRole(string rolCod)
+        public async Task<List<Menu>> GetMenusByRole(string rolCod, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
@@ -61,11 +64,12 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             try
             {
                 AddParameter(parameters, "@P_ROLCOD", rolCod);
+                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_MENU_GETBY_ROLE", CommandType.StoredProcedure,
-                    _connectionString, parameters.ToArray(), dtsDatos))
+                if (await GetDataSetAsync("SP_MENU_SEARCH", CommandType.StoredProcedure,
+                    _connectionString, logParameters, dtsDatos))
                 {
-                    return DeserializeToList<Menu>(dtsDatos);
+                    return DeserializeDataSet<List<Menu>>(dtsDatos) ?? new List<Menu>();
                 }
                 return new List<Menu>();
             }
@@ -79,24 +83,26 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             }
         }
 
-        public async Task<OperationResponse> Upsert(Role role, Log bLog)
+        public async Task<OperationResponse> Save(Role role, Log bLog)
         {
-            var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
                 AddParameter(parameters, "@P_ROLCOD", role.RolCod);
                 AddParameter(parameters, "@P_ROLNAM", role.RolNam);
-                AddParameter(parameters, "@P_ROLDES", role.RolDes ?? "");
-                AddParameter(parameters, "@P_USER", bLog.UseCod ?? "SYSTEM");
-                AddParameter(parameters, "@P_TIMEZONE", TimeZoneInfo.Local.Id);
+                AddParameter(parameters, "@P_ROLDES", role.RolDes);
+                
+                // Output parameters
+                AddOutputParameter(parameters, "@P_MESSAGE_DESCRIPTION", SqlDbType.NVarChar, 500);
+                AddOutputParameter(parameters, "@P_MESSAGE_TYPE", SqlDbType.Int);
+                
+                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Insert);
 
-                if (await GetDataSetAsync("SP_ROLE_UPSERT", CommandType.StoredProcedure,
-                    _connectionString, parameters.ToArray(), dtsDatos))
+                if (await ExecuteTransactionAsync("SP_ROLE_SAVE", CommandType.StoredProcedure,
+                    _connectionString, logParameters))
                 {
-                    var roles = DeserializeToList<Role>(dtsDatos);
-                    return CreateSuccessResponse("Rol guardado correctamente", roles.FirstOrDefault());
+                    return CreateResponseFromParameters(logParameters.ToList(), role);
                 }
                 return CreateErrorResponse("Error al guardar rol");
             }
@@ -104,38 +110,33 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             {
                 return HandleException(ex);
             }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
         }
 
-        // Helper para deserializar DataSet a List
-        private List<T> DeserializeToList<T>(DataSet ds) where T : new()
+        public async Task<OperationResponse> Delete(string rolCod, Log bLog)
         {
-            var list = new List<T>();
-            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            var parameters = CreateParameters();
+
+            try
             {
-                foreach (DataRow row in ds.Tables[0].Rows)
+                AddParameter(parameters, "@P_ROLCOD", rolCod);
+                
+                // Output parameters
+                AddOutputParameter(parameters, "@P_MESSAGE_DESCRIPTION", SqlDbType.NVarChar, 500);
+                AddOutputParameter(parameters, "@P_MESSAGE_TYPE", SqlDbType.Int);
+                
+                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Delete);
+
+                if (await ExecuteTransactionAsync("SP_ROLE_DELETE", CommandType.StoredProcedure,
+                    _connectionString, logParameters))
                 {
-                    var item = new T();
-                    var props = typeof(T).GetProperties();
-                    foreach (var prop in props)
-                    {
-                        if (ds.Tables[0].Columns.Contains(prop.Name) && row[prop.Name] != DBNull.Value)
-                        {
-                            try
-                            {
-                                prop.SetValue(item, Convert.ChangeType(row[prop.Name], 
-                                    Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType));
-                            }
-                            catch { }
-                        }
-                    }
-                    list.Add(item);
+                    return CreateResponseFromParameters(logParameters.ToList(), null);
                 }
+                return CreateErrorResponse("Error al eliminar rol");
             }
-            return list;
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
     }
 }

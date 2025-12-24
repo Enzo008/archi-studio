@@ -10,6 +10,8 @@ interface AuthState {
   // User data from sync
   userYea: string | null;
   userCod: string | null;
+  useNam: string | null;
+  useLas: string | null;
   rolCod: string | null;
   rolNam: string | null;
   menus: Menu[];
@@ -28,6 +30,8 @@ const useAuthStore = create<AuthState>()(
     (set) => ({
       userYea: null,
       userCod: null,
+      useNam: null,
+      useLas: null,
       rolCod: null,
       rolNam: null,
       menus: [],
@@ -39,6 +43,8 @@ const useAuthStore = create<AuthState>()(
           set({
             userYea: data.useYea ?? null,
             userCod: data.useCod ?? null,
+            useNam: data.useNam ?? null,
+            useLas: data.useLas ?? null,
             rolCod: data.rolCod ?? null,
             rolNam: data.rolNam ?? null,
             menus: data.menus ?? [],
@@ -50,6 +56,8 @@ const useAuthStore = create<AuthState>()(
           set({
             userYea: null,
             userCod: null,
+            useNam: null,
+            useLas: null,
             rolCod: null,
             rolNam: null,
             menus: [],
@@ -63,6 +71,8 @@ const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         userYea: state.userYea,
         userCod: state.userCod,
+        useNam: state.useNam,
+        useLas: state.useLas,
         rolCod: state.rolCod,
         rolNam: state.rolNam,
         menus: state.menus,
@@ -75,6 +85,8 @@ const useAuthStore = create<AuthState>()(
 // Selectores atómicos
 export const useUserYea = () => useAuthStore((state) => state.userYea);
 export const useUserCod = () => useAuthStore((state) => state.userCod);
+export const useUserNam = () => useAuthStore((state) => state.useNam);
+export const useUserLas = () => useAuthStore((state) => state.useLas);
 export const useRolCod = () => useAuthStore((state) => state.rolCod);
 export const useRolNam = () => useAuthStore((state) => state.rolNam);
 export const useMenus = () => useAuthStore((state) => state.menus);
@@ -83,3 +95,4 @@ export const useIsNewUser = () => useAuthStore((state) => state.isNewUser);
 
 // Actions
 export const useAuthActions = () => useAuthStore((state) => state.actions);
+

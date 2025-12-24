@@ -13,8 +13,7 @@ namespace archi_studio.server.Data.Interfaces
     public interface IBudgetRepository
     {
         // Budget CRUD
-        Task<OperationResponse> GetAll(Budget bBudget, Log bLog);
-        Task<OperationResponse> GetById(string budYea, string budCod, Log bLog);
+        Task<OperationResponse> Search(Budget bBudget, Log bLog);
         Task<OperationResponse> Create(Budget bBudget, Log bLog);
         Task<OperationResponse> Update(Budget bBudget, Log bLog);
         Task<OperationResponse> Delete(string budYea, string budCod, Log bLog);

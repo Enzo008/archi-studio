@@ -21,15 +21,13 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             var parameters = CreateParameters();
             parameters.AddRange(parametrosExistentes);
 
-            // Parametros de auditoria basicos
-            AddParameter(parameters, "@P_USECRE", log.UseCod ?? "SYSTEM");
-            AddParameter(parameters, "@P_ZONCRE", TimeZoneInfo.Local.Id);
-
-            // Parametros de salida estandar
-            // if (operationType != OperationType.Query)
-            // {
-            //     AddOutputParameter(parameters, "@P_STAREC", SqlDbType.Char, 1);
-            // }
+            // Agregar los parámetros de log/auditoría
+            AddParameter(parameters, "@P_LOGIPMAC", log.LogIpMac);
+            AddParameter(parameters, "@P_USEYEA_U", log.UseYea);
+            AddParameter(parameters, "@P_USECOD_U", log.UseCod);
+            AddParameter(parameters, "@P_USENAM_U", log.UseNam);
+            AddParameter(parameters, "@P_USELAS_U", log.UseLas);
+            AddParameter(parameters, "@P_ROLCOD_U", log.RolCod);  // Rol del usuario para multitenancy
 
             if (operationType == OperationType.Query)
             {

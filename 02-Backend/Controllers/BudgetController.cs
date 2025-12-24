@@ -30,7 +30,7 @@ namespace archi_studio.server.Controllers
         }
 
         /// <summary>
-        /// Get all budgets with pagination
+        /// Get all budgets with pagination and filters
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse>> GetAll(
@@ -51,12 +51,9 @@ namespace archi_studio.server.Controllers
                     BudNam = search,
                     BudSta = status,
                     ProYea = proYea,
-                    ProCod = proCod,
-                    // Multi-tenancy: filter by user unless admin (RolCod='01')
-                    UseYea = bLog.RolCod == "01" ? null : bLog.UseYea,
-                    UseCod = bLog.RolCod == "01" ? null : bLog.UseCod
+                    ProCod = proCod
                 };
-                var response = await _budgetRepo.GetAll(bBudget, bLog);
+                var response = await _budgetRepo.Search(bBudget, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -74,7 +71,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _budgetRepo.GetById(budYea, budCod, bLog);
+                var bBudget = new Budget { BudYea = budYea, BudCod = budCod };
+                var response = await _budgetRepo.Search(bBudget, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)

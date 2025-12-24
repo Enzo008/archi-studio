@@ -64,6 +64,8 @@ export interface SyncUserResponse {
   isNewUser: boolean;
   useYea?: string;
   useCod?: string;
+  useNam?: string;
+  useLas?: string;
   rolCod?: string;
   rolNam?: string;
   menus?: Menu[];

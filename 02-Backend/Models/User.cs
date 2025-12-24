@@ -66,6 +66,8 @@ namespace archi_studio.server.Models
         public bool IsNewUser { get; set; }
         public string? UseYea { get; set; }
         public string? UseCod { get; set; }
+        public string? UseNam { get; set; }
+        public string? UseLas { get; set; }
         public string? RolCod { get; set; }
         public string? RolNam { get; set; }
         public List<Menu>? Menus { get; set; }

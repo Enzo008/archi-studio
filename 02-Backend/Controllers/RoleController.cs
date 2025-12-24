@@ -2,6 +2,7 @@
 // Descripcion       : Role Controller
 // Creado por        : Cascade AI
 // Fecha de Creacion : 10/12/2024
+// Updated           : 17/12/2025 - Standardized with new method names
 // Accion a Realizar : Gestion de roles
 // *****************************************************************************************************
 
@@ -24,7 +25,6 @@ namespace archi_studio.server.Controllers
         private readonly IRoleRepository _roleRepo;
         private readonly LogHelper _logHelper;
 
-        // Constructor using proper Dependency Injection (DIP principle)
         public RoleController(IRoleRepository roleRepo, LogHelper logHelper)
         {
             _roleRepo = roleRepo;
@@ -35,12 +35,12 @@ namespace archi_studio.server.Controllers
         /// Obtiene todos los roles
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse>> GetAll()
+        public async Task<ActionResult<ApiResponse>> Search()
         {
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _roleRepo.GetAll(bLog);
+                var response = await _roleRepo.Search(bLog);
                 
                 return response.MessageType == MessageType.Success
                     ? Ok(new ApiResponse(true, response.Message ?? "Roles obtenidos", "Success", response.Data))
@@ -60,7 +60,8 @@ namespace archi_studio.server.Controllers
         {
             try
             {
-                var menus = await _roleRepo.GetMenusByRole(rolCod);
+                var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
+                var menus = await _roleRepo.GetMenusByRole(rolCod, bLog);
                 return Ok(new ApiResponse(true, "Menús obtenidos", "Success", menus));
             }
             catch (Exception ex)
@@ -73,16 +74,37 @@ namespace archi_studio.server.Controllers
         /// Crea o actualiza un rol
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse>> Upsert([FromBody] Role role)
+        public async Task<ActionResult<ApiResponse>> Save([FromBody] Role role)
         {
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _roleRepo.Upsert(role, bLog);
+                var response = await _roleRepo.Save(role, bLog);
                 
                 return response.MessageType == MessageType.Success
                     ? Ok(new ApiResponse(true, response.Message ?? "Rol guardado", "Success", response.Data))
                     : BadRequest(new ApiResponse(false, response.Message ?? "Error al guardar rol", "Error", null));
+            }
+            catch (Exception ex)
+            {
+                return HandleException<ApiResponse>(ex);
+            }
+        }
+
+        /// <summary>
+        /// Elimina un rol
+        /// </summary>
+        [HttpDelete("{rolCod}")]
+        public async Task<ActionResult<ApiResponse>> Delete(string rolCod)
+        {
+            try
+            {
+                var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
+                var response = await _roleRepo.Delete(rolCod, bLog);
+                
+                return response.MessageType == MessageType.Success
+                    ? Ok(new ApiResponse(true, response.Message ?? "Rol eliminado", "Success", null))
+                    : BadRequest(new ApiResponse(false, response.Message ?? "Error al eliminar rol", "Error", null));
             }
             catch (Exception ex)
             {

@@ -30,7 +30,7 @@ namespace archi_studio.server.Controllers
         }
 
         /// <summary>
-        /// Get all clients with pagination
+        /// Get all clients with pagination and filters
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse>> GetAll(
@@ -49,12 +49,9 @@ namespace archi_studio.server.Controllers
                     PageSize = pageSize,
                     CliNam = search,
                     CliTyp = type,
-                    CliSta = status,
-                    // Multi-tenancy: filter by user unless admin (RolCod='01')
-                    UseYea = bLog.RolCod == "01" ? null : bLog.UseYea,
-                    UseCod = bLog.RolCod == "01" ? null : bLog.UseCod
+                    CliSta = status
                 };
-                var response = await _clientRepo.GetAll(bClient, bLog);
+                var response = await _clientRepo.Search(bClient, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -72,7 +69,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _clientRepo.GetById(cliYea, cliCod, bLog);
+                var bClient = new Client { CliYea = cliYea, CliCod = cliCod };
+                var response = await _clientRepo.Search(bClient, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)

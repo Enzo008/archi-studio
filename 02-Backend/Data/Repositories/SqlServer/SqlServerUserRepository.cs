@@ -9,9 +9,11 @@ using archi_studio.server.Data.Interfaces;
 using archi_studio.server.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Text;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -27,62 +29,43 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(User bUser, Log bLog)
+        public async Task<OperationResponse> Search(User bUser, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
-                AddParameter(parameters, "@P_PAGE_NUMBER", bUser.PageNumber ?? 1);
-                AddParameter(parameters, "@P_PAGE_SIZE", bUser.PageSize ?? 10);
+                AddParameter(parameters, "@P_USEYEA", bUser.UseYea);
+                AddParameter(parameters, "@P_USECOD", bUser.UseCod);
+                AddParameter(parameters, "@P_USEEXTID", bUser.UseExtId);
+                AddParameter(parameters, "@P_SEARCH", bUser.UseNam);
+                AddParameter(parameters, "@P_ROLCOD", bUser.RolCod);
+                AddParameter(parameters, "@P_USESTA", bUser.UseSta);
+                AddParameter(parameters, "@P_PAGE_NUMBER", bUser.PageNumber);
+                AddParameter(parameters, "@P_PAGE_SIZE", bUser.PageSize);
 
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_USER_GETALL", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_USER_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var users = DeserializeToList<User>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), users);
-                }
-                return CreateErrorResponse("Error al obtener usuarios");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
-        }
-
-        public async Task<OperationResponse> GetById(string useYea, string useCod, Log bLog)
-        {
-            var dtsDatos = new DataSet();
-            var parameters = CreateParameters();
-
-            try
-            {
-                AddParameter(parameters, "@P_USEYEA", useYea);
-                AddParameter(parameters, "@P_USECOD", useCod);
-
-                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_USER_GETBYID", CommandType.StoredProcedure,
-                    _connectionString, logParameters, dtsDatos))
-                {
-                    var users = DeserializeToList<User>(dtsDatos);
-                    var user = users.FirstOrDefault();
+                    var users = DeserializeDataSet<List<User>>(dtsDatos) ?? new List<User>();
                     
-                    if (user != null && !string.IsNullOrEmpty(user.RolCod))
+                    // For single user with menus
+                    if (!string.IsNullOrEmpty(bUser.UseYea) && !string.IsNullOrEmpty(bUser.UseCod))
                     {
-                        user.Menus = await GetMenusByRole(user.RolCod);
+                        var user = users.FirstOrDefault();
+                        if (user != null && !string.IsNullOrEmpty(user.RolCod))
+                        {
+                            user.Menus = await GetMenusByRole(user.RolCod, bLog);
+                        }
+                        return CreateResponseFromParameters(logParameters.ToList(), user);
                     }
                     
-                    return CreateResponseFromParameters(logParameters.ToList(), user);
+                    return CreateResponseFromParameters(logParameters.ToList(), users);
                 }
-                return CreateErrorResponse("Usuario no encontrado");
+                return CreateErrorResponse("Error al buscar usuarios");
             }
             catch (Exception ex)
             {
@@ -195,35 +178,52 @@ namespace archi_studio.server.Data.Repositories.SqlServer
                 AddParameter(parameters, "@P_USENAM", request.FirstName);
                 AddParameter(parameters, "@P_USELAS", request.LastName);
                 AddParameter(parameters, "@P_USEIMG", request.ImageUrl);
-                AddParameter(parameters, "@P_USECRE", bLog.UseCod ?? "SYSTEM");
-                AddParameter(parameters, "@P_ZONCRE", TimeZoneInfo.Local.Id);
+                
+                // Output parameters
+                AddOutputParameter(parameters, "@P_USEYEA_OUT", SqlDbType.Char, 4);
+                AddOutputParameter(parameters, "@P_USECOD_OUT", SqlDbType.Char, 6);
+                AddOutputParameter(parameters, "@P_ACTION_OUT", SqlDbType.VarChar, 10);
+                
+                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Insert);
 
+                // SP now returns 2 ResultSets: User+Role JSON, Menus JSON
                 if (await GetDataSetAsync("SP_USER_SYNC_CLERK", CommandType.StoredProcedure,
-                    _connectionString, parameters.ToArray(), dtsDatos))
+                    _connectionString, logParameters, dtsDatos))
                 {
-                    var users = DeserializeToList<User>(dtsDatos);
-                    var user = users.FirstOrDefault();
+                    var useYea = GetOutputValue(logParameters, "@P_USEYEA_OUT");
+                    var useCod = GetOutputValue(logParameters, "@P_USECOD_OUT");
+                    var action = GetOutputValue(logParameters, "@P_ACTION_OUT");
                     
-                    List<Menu>? menus = null;
-                    if (user?.RolCod != null)
+                    if (!string.IsNullOrEmpty(useYea) && !string.IsNullOrEmpty(useCod))
                     {
-                        menus = await GetMenusByRole(user.RolCod);
-                    }
-                    
-                    return new OperationResponse
-                    {
-                        MessageType = MessageType.Success,
-                        Message = "Usuario sincronizado correctamente",
-                        Data = new SyncUserResponse
+                        // Read user data from first ResultSet (Table 0)
+                        var users = DeserializeDataSet<List<User>>(dtsDatos, 0) ?? new List<User>();
+                        var user = users.FirstOrDefault();
+                        
+                        // Read menus from second ResultSet (Table 1)
+                        List<Menu>? menus = null;
+                        if (dtsDatos.Tables.Count > 1)
                         {
-                            IsNewUser = dtsDatos.Tables[0].Rows[0]["ACTION"]?.ToString() == "INSERT",
-                            UseYea = user?.UseYea,
-                            UseCod = user?.UseCod,
-                            RolCod = user?.RolCod,
-                            RolNam = user?.RolNam,
-                            Menus = menus
+                            menus = DeserializeDataSet<List<Menu>>(dtsDatos, 1) ?? new List<Menu>();
                         }
-                    };
+                        
+                        return new OperationResponse
+                        {
+                            MessageType = MessageType.Success,
+                            Message = "Usuario sincronizado correctamente",
+                            Data = new SyncUserResponse
+                            {
+                                IsNewUser = action == "CREATE",
+                                UseYea = useYea?.Trim(),
+                                UseCod = useCod?.Trim(),
+                                UseNam = user?.UseNam?.Trim(),
+                                UseLas = user?.UseLas?.Trim(),
+                                RolCod = user?.RolCod?.Trim(),
+                                RolNam = user?.RolNam?.Trim(),
+                                Menus = menus
+                            }
+                        };
+                    }
                 }
                 return CreateErrorResponse("Error al sincronizar usuario");
             }
@@ -245,11 +245,14 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             try
             {
                 AddParameter(parameters, "@P_USEEXTID", externalId);
+                AddOutputParameter(parameters, "@P_TOTAL_RECORDS", SqlDbType.Int);
+                AddOutputParameter(parameters, "@P_MESSAGE_DESCRIPTION", SqlDbType.VarChar, 500);
+                AddOutputParameter(parameters, "@P_MESSAGE_TYPE", SqlDbType.Int);
 
-                if (await GetDataSetAsync("SP_USER_GETBY_EXTID", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_USER_SEARCH", CommandType.StoredProcedure,
                     _connectionString, parameters.ToArray(), dtsDatos))
                 {
-                    var users = DeserializeToList<User>(dtsDatos);
+                    var users = DeserializeDataSet<List<User>>(dtsDatos) ?? new List<User>();
                     return users.FirstOrDefault();
                 }
                 return null;
@@ -264,7 +267,7 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             }
         }
 
-        public async Task<List<Menu>> GetMenusByRole(string rolCod)
+        public async Task<List<Menu>> GetMenusByRole(string rolCod, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
@@ -272,11 +275,12 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             try
             {
                 AddParameter(parameters, "@P_ROLCOD", rolCod);
+                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_MENU_GETBY_ROLE", CommandType.StoredProcedure,
-                    _connectionString, parameters.ToArray(), dtsDatos))
+                if (await GetDataSetAsync("SP_MENU_SEARCH", CommandType.StoredProcedure,
+                    _connectionString, logParameters, dtsDatos))
                 {
-                    return DeserializeToList<Menu>(dtsDatos);
+                    return DeserializeDataSet<List<Menu>>(dtsDatos) ?? new List<Menu>();
                 }
                 return new List<Menu>();
             }

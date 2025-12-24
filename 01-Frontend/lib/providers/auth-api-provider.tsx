@@ -13,11 +13,15 @@ export function AuthApiProvider({ children }: { children: ReactNode }) {
   const configuredRef = useRef(false);
 
   // Función estable para obtener el token
+  // IMPORTANTE: getToken() sin template retorna el session token
+  // Para incluir el user.id (sub), se debe usar un JWT Template en Clerk Dashboard
   const getAuthToken = useCallback(async () => {
     try {
       // Si no hay sesión, retornar null
       if (!isSignedIn) return null;
-      return await getToken();
+      // Usar el template 'archi-studio' configurado en Clerk Dashboard
+      // Si no tienes template, cambia a: return await getToken();
+      return await getToken({ template: 'archi-studio' });
     } catch {
       return null;
     }

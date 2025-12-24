@@ -12,6 +12,7 @@ using System.Data;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -27,61 +28,59 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(Project bProject, Log bLog)
+        /// <summary>
+        /// Unified search method using SP_PROJECT_SEARCH
+        /// - Provides ProYea + ProCod for single project lookup (GetById behavior)
+        /// - Provides filters/pagination for list (GetAll behavior)
+        /// </summary>
+        public async Task<OperationResponse> Search(Project bProject, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
-                AddParameter(parameters, "@P_PAGE_NUMBER", bProject.PageNumber ?? 1);
-                AddParameter(parameters, "@P_PAGE_SIZE", bProject.PageSize ?? 10);
-                AddParameter(parameters, "@P_SEARCH", bProject.ProNam);
-                AddParameter(parameters, "@P_PROSTA", bProject.ProSta);
-                AddParameter(parameters, "@P_CLIYEA", bProject.CliYea);
+                // Primary key filters (for GetById mode)
+                AddParameter(parameters, "@P_PROYEA", bProject.ProYea);
+                AddParameter(parameters, "@P_PROCOD", bProject.ProCod);
+                
+                // Search filters
+                AddParameter(parameters, "@P_SEARCH", bProject.ProNam);  // Search by name/desc/address
+                AddParameter(parameters, "@P_PROSTA", bProject.ProSta);  // Status filter
+                AddParameter(parameters, "@P_CLIYEA", bProject.CliYea);  // Client filter
                 AddParameter(parameters, "@P_CLICOD", bProject.CliCod);
+                
+                // User filter (for explicit manager filtering)
                 AddParameter(parameters, "@P_USEYEA", bProject.UseYea);
                 AddParameter(parameters, "@P_USECOD", bProject.UseCod);
-
+                
+                // Pagination
+                AddParameter(parameters, "@P_PAGE_NUMBER", bProject.PageNumber);
+                AddParameter(parameters, "@P_PAGE_SIZE", bProject.PageSize);
+                
+                // Log parameters (includes RolCod for multitenancy in SP)
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_PROJECT_GETALL", CommandType.StoredProcedure,
+                
+                foreach (var param in logParameters)
+                {
+                    Console.WriteLine($"Parametro: {param.ParameterName}, Valor: {param.Value}");
+                }
+                
+                if (await GetDataSetAsync("SP_PROJECT_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var projects = DeserializeToList<Project>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), projects);
+                    var dtsData = DeserializeDataSet<List<Project>>(dtsDatos) ?? new List<Project>();
+                    
+                    // If searching by PK, return single item or null
+                    if (!string.IsNullOrEmpty(bProject.ProYea) && !string.IsNullOrEmpty(bProject.ProCod))
+                    {
+                        return CreateResponseFromParameters(logParameters.ToList(), dtsData.FirstOrDefault());
+                    }
+                    
+                    // Otherwise return list
+                    return CreateResponseFromParameters(logParameters.ToList(), dtsData);
                 }
-                return CreateErrorResponse("Error al obtener proyectos");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
-        }
-
-        public async Task<OperationResponse> GetById(string proYea, string proCod, Log bLog)
-        {
-            var dtsDatos = new DataSet();
-            var parameters = CreateParameters();
-
-            try
-            {
-                AddParameter(parameters, "@P_PROYEA", proYea);
-                AddParameter(parameters, "@P_PROCOD", proCod);
-
-                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_PROJECT_GETBYID", CommandType.StoredProcedure,
-                    _connectionString, logParameters, dtsDatos))
-                {
-                    var projects = DeserializeToList<Project>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), projects.FirstOrDefault());
-                }
-                return CreateErrorResponse("Proyecto no encontrado");
+                return CreateErrorResponse("Error al buscar proyectos");
             }
             catch (Exception ex)
             {

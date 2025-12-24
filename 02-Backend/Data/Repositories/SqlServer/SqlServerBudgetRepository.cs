@@ -12,6 +12,7 @@ using System.Data;
 using static Helper.SqlHelper;
 using static Helper.Types;
 using static Helper.BaseDAO;
+using static Helper.CommonHelper;
 using Helper;
 
 namespace archi_studio.server.Data.Repositories.SqlServer
@@ -27,90 +28,37 @@ namespace archi_studio.server.Data.Repositories.SqlServer
             _logRepo = new SqlServerLogRepository();
         }
 
-        public async Task<OperationResponse> GetAll(Budget bBudget, Log bLog)
+        public async Task<OperationResponse> Search(Budget bBudget, Log bLog)
         {
             var dtsDatos = new DataSet();
             var parameters = CreateParameters();
 
             try
             {
-                AddParameter(parameters, "@P_PAGE_NUMBER", bBudget.PageNumber ?? 1);
-                AddParameter(parameters, "@P_PAGE_SIZE", bBudget.PageSize ?? 10);
+                AddParameter(parameters, "@P_BUDYEA", bBudget.BudYea);
+                AddParameter(parameters, "@P_BUDCOD", bBudget.BudCod);
                 AddParameter(parameters, "@P_SEARCH", bBudget.BudNam);
                 AddParameter(parameters, "@P_BUDSTA", bBudget.BudSta);
                 AddParameter(parameters, "@P_PROYEA", bBudget.ProYea);
                 AddParameter(parameters, "@P_PROCOD", bBudget.ProCod);
-                // Multi-tenancy filter via project
-                AddParameter(parameters, "@P_USEYEA", bBudget.UseYea);
-                AddParameter(parameters, "@P_USECOD", bBudget.UseCod);
+                AddParameter(parameters, "@P_PAGE_NUMBER", bBudget.PageNumber);
+                AddParameter(parameters, "@P_PAGE_SIZE", bBudget.PageSize);
 
                 var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
 
-                if (await GetDataSetAsync("SP_BUDGET_GETALL", CommandType.StoredProcedure,
+                if (await GetDataSetAsync("SP_BUDGET_SEARCH", CommandType.StoredProcedure,
                     _connectionString, logParameters, dtsDatos))
                 {
-                    var budgets = DeserializeToList<Budget>(dtsDatos);
-                    return CreateResponseFromParameters(logParameters.ToList(), budgets);
-                }
-                return CreateErrorResponse("Error al obtener presupuestos");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex);
-            }
-            finally
-            {
-                dtsDatos.Dispose();
-            }
-        }
-
-        public async Task<OperationResponse> GetById(string budYea, string budCod, Log bLog)
-        {
-            var dtsDatos = new DataSet();
-            var parameters = CreateParameters();
-
-            try
-            {
-                AddParameter(parameters, "@P_BUDYEA", budYea);
-                AddParameter(parameters, "@P_BUDCOD", budCod);
-
-                var logParameters = _logRepo.AgregarParametrosLog(parameters.ToArray(), bLog, OperationType.Query);
-
-                if (await GetDataSetAsync("SP_BUDGET_GETBYID", CommandType.StoredProcedure,
-                    _connectionString, logParameters, dtsDatos))
-                {
-                    var budgets = DeserializeToList<Budget>(dtsDatos);
-                    var budget = budgets.FirstOrDefault();
+                    var dtsData = DeserializeDataSet<List<Budget>>(dtsDatos) ?? new List<Budget>();
                     
-                    // Get items from second result set
-                    if (budget != null && dtsDatos.Tables.Count > 1)
-                    {
-                        budget.Items = new List<BudgetItem>();
-                        foreach (DataRow row in dtsDatos.Tables[1].Rows)
-                        {
-                            budget.Items.Add(new BudgetItem
-                            {
-                                BudYea = row["BUDYEA"]?.ToString(),
-                                BudCod = row["BUDCOD"]?.ToString(),
-                                BudIteNum = row["BUDITENUM"] as int?,
-                                BudIteNam = row["BUDITENAM"]?.ToString(),
-                                BudIteQty = row["BUDITEQTY"] as decimal?,
-                                BudIteUni = row["BUDITEUNI"]?.ToString(),
-                                BudItePri = row["BUDITEPRI"] as decimal?,
-                                BudIteTot = row["BUDITETOT"] as decimal?,
-                                BudIteSta = row["BUDITESTA"]?.ToString(),
-                                BudIteNot = row["BUDITENOT"]?.ToString(),
-                                BudIteImgPat = row.Table.Columns.Contains("BUDITEIMGPAT") ? row["BUDITEIMGPAT"]?.ToString() : null,
-                                BudIteImgFil = row.Table.Columns.Contains("BUDITEIMGFIL") ? row["BUDITEIMGFIL"]?.ToString() : null,
-                                BudIteImgSiz = row.Table.Columns.Contains("BUDITEIMGSIZ") ? row["BUDITEIMGSIZ"] as long? : null,
-                                BudIteImgMim = row.Table.Columns.Contains("BUDITEIMGMIM") ? row["BUDITEIMGMIM"]?.ToString() : null
-                            });
-                        }
-                    }
+                    // Detail mode: return single item
+                    if (!string.IsNullOrEmpty(bBudget.BudYea) && !string.IsNullOrEmpty(bBudget.BudCod))
+                        return CreateResponseFromParameters(logParameters.ToList(), dtsData.FirstOrDefault());
                     
-                    return CreateResponseFromParameters(logParameters.ToList(), budget);
+                    // List mode: return array
+                    return CreateResponseFromParameters(logParameters.ToList(), dtsData);
                 }
-                return CreateErrorResponse("Presupuesto no encontrado");
+                return CreateErrorResponse("Error al buscar presupuestos");
             }
             catch (Exception ex)
             {

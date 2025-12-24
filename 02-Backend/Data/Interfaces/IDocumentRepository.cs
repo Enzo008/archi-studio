@@ -12,8 +12,7 @@ namespace archi_studio.server.Data.Interfaces
 {
     public interface IDocumentRepository
     {
-        Task<OperationResponse> GetAll(Document bDocument, Log bLog);
-        Task<OperationResponse> GetById(string docYea, string docCod, Log bLog);
+        Task<OperationResponse> Search(Document bDocument, Log bLog);
         Task<OperationResponse> Create(Document bDocument, Log bLog);
         Task<OperationResponse> Update(Document bDocument, Log bLog);
         Task<OperationResponse> Delete(string docYea, string docCod, Log bLog);

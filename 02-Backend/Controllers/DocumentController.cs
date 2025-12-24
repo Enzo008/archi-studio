@@ -52,7 +52,7 @@ namespace archi_studio.server.Controllers
         }
 
         /// <summary>
-        /// Get all documents with pagination
+        /// Get all documents with pagination and filters
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<ApiResponse>> GetAll(
@@ -75,12 +75,9 @@ namespace archi_studio.server.Controllers
                     DocTyp = type,
                     DocSta = status,
                     ProYea = proYea,
-                    ProCod = proCod,
-                    // Multi-tenancy: filter by user unless admin (RolCod='01')
-                    UseYea = bLog.RolCod == "01" ? null : bLog.UseYea,
-                    UseCod = bLog.RolCod == "01" ? null : bLog.UseCod
+                    ProCod = proCod
                 };
-                var response = await _documentRepo.GetAll(bDocument, bLog);
+                var response = await _documentRepo.Search(bDocument, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -98,7 +95,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _documentRepo.GetById(docYea, docCod, bLog);
+                var bDocument = new Document { DocYea = docYea, DocCod = docCod };
+                var response = await _documentRepo.Search(bDocument, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -267,7 +265,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _documentRepo.GetById(docYea, docCod, bLog);
+                var bDocument = new Document { DocYea = docYea, DocCod = docCod };
+                var response = await _documentRepo.Search(bDocument, bLog);
                 
                 if (!response.Success || response.Data == null)
                 {
@@ -314,7 +313,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _documentRepo.GetById(docYea, docCod, bLog);
+                var bDocument = new Document { DocYea = docYea, DocCod = docCod };
+                var response = await _documentRepo.Search(bDocument, bLog);
                 
                 if (!response.Success || response.Data == null)
                 {

@@ -56,13 +56,17 @@ namespace archi_studio.server.Controllers
         /// Obtiene todos los usuarios con paginacion
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<ApiResponse>> GetAll(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? rolCod = null)
         {
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var bUser = new User { PageNumber = page, PageSize = pageSize };
-                var response = await _userRepo.GetAll(bUser, bLog);
+                var bUser = new User { PageNumber = page, PageSize = pageSize, UseNam = search, RolCod = rolCod };
+                var response = await _userRepo.Search(bUser, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
@@ -80,7 +84,8 @@ namespace archi_studio.server.Controllers
             try
             {
                 var bLog = await _logHelper.CreateLogFromTokenAsync(HttpContext);
-                var response = await _userRepo.GetById(useYea, useCod, bLog);
+                var bUser = new User { UseYea = useYea, UseCod = useCod };
+                var response = await _userRepo.Search(bUser, bLog);
                 return FromOperationResponse<ApiResponse>(response);
             }
             catch (Exception ex)
