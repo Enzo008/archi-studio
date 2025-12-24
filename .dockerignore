@@ -1,0 +1,51 @@
+# Archi Studio - Docker Ignore
+# ════════════════════════════════════════════════════════════════════════════
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+bin/
+obj/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.production
+.env.prod
+*.env
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Git
+.git/
+.github/
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.md
+LICENSE
+Thumbs.db
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo

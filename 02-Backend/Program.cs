@@ -48,8 +48,8 @@ namespace archi_studio.server
         {
             var builder = WebApplication.CreateBuilder(args);
             
-            // Configurar URL del servidor
-            builder.WebHost.UseUrls("http://localhost:5181");
+            // En producción, Kestrel usa ASPNETCORE_URLS del entorno
+            // En desarrollo, usa launchSettings.json
 
             // Configurar servicios básicos
             ConfigureBasicServices(builder);
@@ -137,7 +137,8 @@ namespace archi_studio.server
                         },
                         OnTokenValidated = context =>
                         {
-                            var userId = context.Principal?.FindFirst("sub")?.Value;
+                            var userId = context.Principal?.FindFirst("user_id")?.Value 
+                                      ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                             Console.WriteLine($"✅ Token validado para usuario: {userId}");
                             return Task.CompletedTask;
                         }

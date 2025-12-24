@@ -1,0 +1,88 @@
+# ════════════════════════════════════════════════════════════════════════════
+# PRODUCTION DOCKER COMPOSE - Archi Studio
+# ════════════════════════════════════════════════════════════════════════════
+# 
+# Uso:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Prerequisitos:
+#   1. Red global existente: docker network create web_network
+#   2. SQL Server Global corriendo en web_network (sqlserver-global)
+#   3. Base de datos ArchiStudioDb creada en SQL Server Global
+#   4. Archivo .env.prod con las variables requeridas
+#
+# ════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ────────────────────────────────────────────────────────────────────────
+  # Backend API (.NET 10)
+  # ────────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./02-Backend
+      dockerfile: Dockerfile
+    container_name: archi-api
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__ConnectionStringSqlServer=Server=sqlserver-global,1433;Database=ArchiStudioDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true;Encrypt=false
+      - Clerk__Domain=${CLERK_DOMAIN}
+      - CorsSettings__AllowedOrigins__0=http://${VPS_IP}:3001
+      - CorsSettings__AllowedOrigins__1=https://${VPS_IP}:3001
+      - AppSettings__FrontendBaseUrl=http://${VPS_IP}:3001
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - archi-network
+      - web_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Frontend Web (Next.js 16)
+  # ────────────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./01-Frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://${VPS_IP}:8081
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+    container_name: archi-web
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://${VPS_IP}:8081
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - archi-network
+      - web_network
+
+# ════════════════════════════════════════════════════════════════════════════
+# PERSISTENT VOLUMES
+# ════════════════════════════════════════════════════════════════════════════
+volumes:
+  uploads_data:
+    driver: local
+
+# ════════════════════════════════════════════════════════════════════════════
+# NETWORKS
+# ════════════════════════════════════════════════════════════════════════════
+networks:
+  archi-network:
+    driver: bridge
+  web_network:
+    name: web_network
+    external: true
