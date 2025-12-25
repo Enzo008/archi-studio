@@ -29,9 +29,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__ConnectionStringSqlServer=Server=sqlserver-global,1433;Database=ArchiStudioDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true;Encrypt=false
       - Clerk__Domain=${CLERK_DOMAIN}
-      - CorsSettings__AllowedOrigins__0=http://${VPS_IP}:3001
-      - CorsSettings__AllowedOrigins__1=https://${VPS_IP}:3001
-      - AppSettings__FrontendBaseUrl=http://${VPS_IP}:3001
+      - CorsSettings__AllowedOrigins__0=${FRONTEND_URL}
+      - AppSettings__FrontendBaseUrl=${FRONTEND_URL}
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -52,7 +51,7 @@ services:
       context: ./01-Frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://${VPS_IP}:8081
+        - NEXT_PUBLIC_API_URL=${API_URL}
         - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
     container_name: archi-web
     restart: always
@@ -60,7 +59,7 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://${VPS_IP}:8081
+      - NEXT_PUBLIC_API_URL=${API_URL}
       - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
     depends_on:
