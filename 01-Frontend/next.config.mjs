@@ -6,6 +6,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.clerk.com' },
       { protocol: 'https', hostname: 'img.clerk.com' },
       { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: '**.kipudev.com' },
     ],
   },
 }
