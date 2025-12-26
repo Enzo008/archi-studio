@@ -53,6 +53,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${API_URL}
         - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+        - NPM_TOKEN=${NPM_TOKEN}
     container_name: archi-web
     restart: always
     ports:

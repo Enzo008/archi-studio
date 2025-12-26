@@ -16,7 +16,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /root/apps/archi-studio
+            git pull origin main
             export NPM_TOKEN=${{ secrets.NPM_TOKEN }}
-            git pull origin master
-            cd 01-Frontend && pnpm install && cd ..
             docker compose up -d --build

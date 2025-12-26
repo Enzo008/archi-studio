@@ -9,7 +9,14 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+
+# Setup npm authentication for private packages
+ARG NPM_TOKEN
+RUN if [ -n "$NPM_TOKEN" ]; then \
+    echo "@enzo008:registry=https://npm.pkg.github.com" >> .npmrc && \
+    echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> .npmrc; \
+    fi
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
